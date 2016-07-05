@@ -10,16 +10,19 @@ import UIKit
 import FirebaseAuth
 import FirebaseDatabase
 
-class SecondViewController: UITableViewController, OnCellButtonClickListener {
+class SecondViewController: UITableViewController {
 
     @IBOutlet var tableview: UITableView!
     
     var chatList : [ChatList]!
+    var roomItems : [RoomItem]!
     var selectedChat : ChatList!
     
     var ref: FIRDatabaseReference!
     var myUid: String!
     var myName: String!
+    
+    var acruzApi = AcruzAPI(storageReferenceURL: "gs://project-3539196792486762214.appspot.com")
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,7 +36,9 @@ class SecondViewController: UITableViewController, OnCellButtonClickListener {
         tableview.delegate = self
         
         chatList = []
-        startLoadingDefaultChats()
+        //startLoadingDefaultChats()
+        roomItems = []
+        startLoadingRooms()
     }
 
     override func didReceiveMemoryWarning() {
@@ -63,19 +68,38 @@ class SecondViewController: UITableViewController, OnCellButtonClickListener {
         })
     }
     
+    func startLoadingRooms() {
+        acruzApi.getRoomList(myUid, completion: { (rooms) in
+            self.chatList.removeAll()
+            self.roomItems.removeAll()
+            for roomId in rooms {
+                
+                
+                let p = ChatList(uid: "1111", nickname: "2222", lastcomment: roomId, time: "yesterday", thumbnail: "0")
+                self.chatList.append(p)
+                
+                let roomItem = RoomItem(myId: self.myUid, roomId: roomId)
+                self.roomItems.append(roomItem)
+                
+                /*self.acruzApi.loadRoomById(roomId, completion: { (snapshot) in
+                    
+                })*/
+                
+            }
+            self.tableview?.reloadData()
+        
+        })
+    }
+    
     // MARK:: TABLE VIEW
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return chatList.count
     }
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        
-        let item : ChatList = chatList[indexPath.row]
-        
-        let cell = tableView.dequeueReusableCellWithIdentifier("CHAT_CELL", forIndexPath: indexPath) as! ChatListTableCell
+        let item : RoomItem = roomItems[indexPath.row]
+        let cell = tableView.dequeueReusableCellWithIdentifier("ROOM_CELL", forIndexPath: indexPath) as! RoomItemTableCell
         cell.setData(item, index: indexPath.row)
-        
-        cell.listener = self
         return cell
     }
     
@@ -84,10 +108,6 @@ class SecondViewController: UITableViewController, OnCellButtonClickListener {
         selectedChat = item
         
         self.performSegueWithIdentifier("ChattingView", sender: self)
-    }
-    
-    func onCellButtonClick(chatItem: ChatList, itemIndex: Int) {
-        print("\(itemIndex) 위치의 버튼 눌러짐 >> \(chatItem.nickname)")
     }
 
     // MARK:: for passing data to ChattingViewController
